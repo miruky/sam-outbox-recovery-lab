@@ -1,4 +1,4 @@
-# SAMで作るOutboxと集計の再構築
+# SAMで作るアウトボックスと集計の再構築
 
 注文と送信待ちイベントをDynamoDBへ同時に保存し、EventBridgeから集計と通知記録へ配信するサンプルです。集計側だけを故障させ、アーカイブの再生で新しい集計世代を作成します。通知はDynamoDBへの模擬記録であり、メールや外部サービスへの送信はありません。
 
@@ -74,6 +74,8 @@ python scripts/lab.py duplicate --order 1 --times 3
 python scripts/lab.py status
 ```
 
+配信は非同期です。重複配信後も数秒置いて状態を確認し、`python scripts/lab.py queues --summary` で集計用・通知用キューの滞留が解消してから、故障フラグを有効にしてください。キューの件数は近似値で、配信の重複がある場合は注文の差分と一致しないことがあります。
+
 ## 集計側の障害と再構築
 
 ```bash
@@ -93,7 +95,7 @@ python scripts/lab.py rebuild
 python scripts/lab.py execution
 ```
 
-状態機械は最新のOutbox送信時刻から10分経過するまで待機します。アーカイブの反映待ち後、再生先を再構築用ルールへ限定して処理します。`execution` が `SUCCEEDED` となったら照合結果を確認します。
+状態機械は最新のアウトボックス送信時刻から10分経過するまで待機します。アーカイブの反映待ち後、再生先を再構築用ルールへ限定して処理します。`execution` が `SUCCEEDED` となったら照合結果を確認します。
 
 ```bash
 # 新世代の集計と通知件数を確認してから、注文受付を再開します。
