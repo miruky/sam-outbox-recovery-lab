@@ -1,0 +1,58 @@
+# 配布物のバケットもSAM CLIで作成します。
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Private deployment artifacts for the bounded outbox demonstration.
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@2
+Parameters:
+  ArtifactBucketName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: SAM CLIが生成した配布物を保持する専用バケット。
+        must:
+        - 公開しない。
+    Properties:
+      BucketName:
+        Ref: ArtifactBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource:
+          - Fn::GetAtt:
+            - ArtifactBucket
+            - Arn
+          - Fn::Sub: ${ArtifactBucket.Arn}/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+Outputs:
+  ArtifactBucket:
+    Value:
+      Ref: ArtifactBucket

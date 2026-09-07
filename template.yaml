@@ -1,0 +1,1892 @@
+# 全リソースの物理名は独立した乱数をパラメーターへ渡します。
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Rebuild order aggregates from archived events while keeping notification processing independent.
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@2
+  com.aws.cloudformation.Context:
+    ref:
+    - at: docs/design.md
+      has: Generation verification and bounded recovery
+      scope: stack
+Parameters:
+  OrdersTableName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ControlTableName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateTableName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationsTableName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateQueueName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationQueueName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildQueueName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateDLQName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationDLQName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildDLQName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  DeliveryDLQName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayDLQName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrderBusName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrderArchiveName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateRuleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationRuleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildRuleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  HttpApiName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ApiStageName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrdersFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrdersFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrdersFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  OrdersFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ControllerFunctionName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ControllerFunctionLogName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ControllerFunctionRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  ControllerFunctionPolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildStateMachineName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildStateMachineRoleName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildStateMachinePolicyName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  AggregateDLQAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  NotificationDLQAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RebuildDLQAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  DeliveryDLQAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayDLQAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+  RelayAgeAlarmName:
+    Type: String
+    AllowedPattern: miruky-[a-z]{16}
+    Description: 独立して生成したリソース名
+Resources:
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 合成注文と復旧対象だけを保持する。
+        must:
+        - 本番データを入れない。
+        - 単一リージョンのトランザクションを使う。
+    Properties:
+      TableName:
+        Ref: OrdersTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  ControlTable:
+    Type: AWS::DynamoDB::Table
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 合成注文と復旧対象だけを保持する。
+        must:
+        - 本番データを入れない。
+        - 単一リージョンのトランザクションを使う。
+    Properties:
+      TableName:
+        Ref: ControlTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  AggregateTable:
+    Type: AWS::DynamoDB::Table
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 合成注文と復旧対象だけを保持する。
+        must:
+        - 本番データを入れない。
+        - 単一リージョンのトランザクションを使う。
+    Properties:
+      TableName:
+        Ref: AggregateTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  NotificationsTable:
+    Type: AWS::DynamoDB::Table
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 合成注文と復旧対象だけを保持する。
+        must:
+        - 本番データを入れない。
+        - 単一リージョンのトランザクションを使う。
+    Properties:
+      TableName:
+        Ref: NotificationsTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  AggregateQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: AggregateQueueName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 86400
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - AggregateDLQ
+          - Arn
+        maxReceiveCount: 5
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: NotificationQueueName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 86400
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - NotificationDLQ
+          - Arn
+        maxReceiveCount: 5
+  RebuildQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: RebuildQueueName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 86400
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - RebuildDLQ
+          - Arn
+        maxReceiveCount: 5
+  AggregateDLQ:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: AggregateDLQName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+  NotificationDLQ:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: NotificationDLQName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+  RebuildDLQ:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: RebuildDLQName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+  DeliveryDLQ:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: DeliveryDLQName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+  RelayDLQ:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 処理失敗と配送失敗を記録する独立したキュー。
+        must:
+        - 暗号化を無効にしない。
+    Properties:
+      QueueName:
+        Ref: RelayDLQName
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+  OrderBus:
+    Type: AWS::Events::EventBus
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 通常イベントとアーカイブ再生の元バス。
+        must:
+        - 再生先は同じバスに限定する。
+    Properties:
+      Name:
+        Ref: OrderBusName
+  OrderArchive:
+    Type: AWS::Events::Archive
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 成功して届いた業務イベントを再構築に使う。
+        must:
+        - 未送信Outboxは別途回収する。
+    Properties:
+      ArchiveName:
+        Ref: OrderArchiveName
+      SourceArn:
+        Fn::GetAtt:
+        - OrderBus
+        - Arn
+      RetentionDays: 1
+      EventPattern:
+        source:
+        - lab.orders
+        detail-type:
+        - OrderCreated
+  AggregateRule:
+    Type: AWS::Events::Rule
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 通常配送と再生の宛先をイベント条件でも分離する。
+        must:
+        - 再生イベントを通知へ配送しない。
+    Properties:
+      Name:
+        Ref: AggregateRuleName
+      EventBusName:
+        Ref: OrderBus
+      EventPattern:
+        source:
+        - lab.orders
+        detail-type:
+        - OrderCreated
+        replay-name:
+        - exists: false
+      State: ENABLED
+      Targets:
+      - Id: Aggregate
+        Arn:
+          Fn::GetAtt:
+          - AggregateQueue
+          - Arn
+        DeadLetterConfig:
+          Arn:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+        RetryPolicy:
+          MaximumRetryAttempts: 3
+          MaximumEventAgeInSeconds: 300
+  NotificationRule:
+    Type: AWS::Events::Rule
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 通常配送と再生の宛先をイベント条件でも分離する。
+        must:
+        - 再生イベントを通知へ配送しない。
+    Properties:
+      Name:
+        Ref: NotificationRuleName
+      EventBusName:
+        Ref: OrderBus
+      EventPattern:
+        source:
+        - lab.orders
+        detail-type:
+        - OrderCreated
+        replay-name:
+        - exists: false
+      State: ENABLED
+      Targets:
+      - Id: Notification
+        Arn:
+          Fn::GetAtt:
+          - NotificationQueue
+          - Arn
+        DeadLetterConfig:
+          Arn:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+        RetryPolicy:
+          MaximumRetryAttempts: 3
+          MaximumEventAgeInSeconds: 300
+  RebuildRule:
+    Type: AWS::Events::Rule
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 通常配送と再生の宛先をイベント条件でも分離する。
+        must:
+        - 再生イベントを通知へ配送しない。
+    Properties:
+      Name:
+        Ref: RebuildRuleName
+      EventBusName:
+        Ref: OrderBus
+      EventPattern:
+        source:
+        - lab.orders
+        detail-type:
+        - OrderCreated
+        replay-name:
+        - exists: true
+      State: ENABLED
+      Targets:
+      - Id: Rebuild
+        Arn:
+          Fn::GetAtt:
+          - RebuildQueue
+          - Arn
+        DeadLetterConfig:
+          Arn:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+        RetryPolicy:
+          MaximumRetryAttempts: 3
+          MaximumEventAgeInSeconds: 300
+  AggregateQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: AggregateQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - AggregateQueue
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - AggregateQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - AggregateRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  NotificationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: NotificationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - NotificationQueue
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - NotificationQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - NotificationRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  RebuildQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: RebuildQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - RebuildQueue
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - RebuildQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - RebuildRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  AggregateDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: AggregateDLQ
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - AggregateDLQ
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  NotificationDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: NotificationDLQ
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - NotificationDLQ
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  RebuildDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: RebuildDLQ
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - RebuildDLQ
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  DeliveryDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: DeliveryDLQ
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - AggregateRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - NotificationRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDLQ
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Fn::GetAtt:
+                - RebuildRule
+                - Arn
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  RelayDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: RelayDLQ
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Deny
+          Principal: '*'
+          Action: sqs:*
+          Resource:
+            Fn::GetAtt:
+            - RelayDLQ
+            - Arn
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 署名付きの合成注文だけを受け付ける。
+        must:
+        - IAM認証を外さない。
+    Properties:
+      Name:
+        Ref: HttpApiName
+      StageName:
+        Ref: ApiStageName
+      Auth:
+        EnableIamAuthorizer: true
+        DefaultAuthorizer: AWS_IAM
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 3
+  OrdersFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: OrdersFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  OrdersFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: OrdersFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: OrdersFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - OrdersFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            Resource:
+            - Fn::GetAtt:
+              - OrdersTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - ControlTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:Query
+            Resource:
+            - Fn::GetAtt:
+              - AggregateTable
+              - Arn
+  OrdersFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must: []
+    Properties:
+      FunctionName:
+        Ref: OrdersFunctionName
+      CodeUri: src/
+      Handler: orders.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - OrdersFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: OrdersFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+      Events:
+        CreateOrder:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /orders
+            Method: POST
+            PayloadFormatVersion: '2.0'
+        GetTotal:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /aggregate
+            Method: GET
+            PayloadFormatVersion: '2.0'
+  RelayFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: RelayFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  RelayFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: RelayFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: RelayFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - RelayFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - OrdersTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:DescribeStream
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            Resource:
+            - Fn::GetAtt:
+              - OrdersTable
+              - StreamArn
+          - Effect: Allow
+            Action:
+            - dynamodb:ListStreams
+            Resource:
+            - '*'
+          - Effect: Allow
+            Action:
+            - events:PutEvents
+            Resource:
+            - Fn::GetAtt:
+              - OrderBus
+              - Arn
+          - Effect: Allow
+            Action:
+            - sqs:SendMessage
+            Resource:
+            - Fn::GetAtt:
+              - RelayDLQ
+              - Arn
+  RelayFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must: []
+    Properties:
+      FunctionName:
+        Ref: RelayFunctionName
+      CodeUri: src/
+      Handler: relay.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 256
+      Timeout: 30
+      Role:
+        Fn::GetAtt:
+        - RelayFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: RelayFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+      Events:
+        OutboxStream:
+          Type: DynamoDB
+          Properties:
+            Stream:
+              Fn::GetAtt:
+              - OrdersTable
+              - StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
+            MaximumRetryAttempts: 3
+            MaximumRecordAgeInSeconds: 600
+            BisectBatchOnFunctionError: true
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            DestinationConfig:
+              OnFailure:
+                Type: SQS
+                Destination:
+                  Fn::GetAtt:
+                  - RelayDLQ
+                  - Arn
+            FilterCriteria:
+              Filters:
+              - Pattern: '{"eventName":["INSERT"],"dynamodb":{"NewImage":{"pk":{"S":["OUTBOX"]}}}}'
+  AggregateFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: AggregateFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  AggregateFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: AggregateFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: AggregateFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - AggregateFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - AggregateTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:ConditionCheckItem
+            Resource:
+            - Fn::GetAtt:
+              - ControlTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - AggregateQueue
+              - Arn
+  AggregateFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must:
+        - 集計更新と処理済みIDの保存は同じトランザクションにする。
+    Properties:
+      FunctionName:
+        Ref: AggregateFunctionName
+      CodeUri: src/
+      Handler: consumer.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - AggregateFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: AggregateFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+          CONSUMER_KIND: aggregate
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - AggregateQueue
+              - Arn
+            BatchSize: 5
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            ScalingConfig:
+              MaximumConcurrency: 2
+  NotificationFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: NotificationFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  NotificationFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: NotificationFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: NotificationFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - NotificationFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            Resource:
+            - Fn::GetAtt:
+              - NotificationsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - NotificationQueue
+              - Arn
+  NotificationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must: []
+    Properties:
+      FunctionName:
+        Ref: NotificationFunctionName
+      CodeUri: src/
+      Handler: consumer.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - NotificationFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: NotificationFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+          CONSUMER_KIND: notify
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - NotificationQueue
+              - Arn
+            BatchSize: 5
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            ScalingConfig:
+              MaximumConcurrency: 2
+  RebuildFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: RebuildFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  RebuildFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: RebuildFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: RebuildFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - RebuildFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - AggregateTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:ConditionCheckItem
+            Resource:
+            - Fn::GetAtt:
+              - ControlTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - RebuildQueue
+              - Arn
+  RebuildFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must:
+        - 集計更新と処理済みIDの保存は同じトランザクションにする。
+    Properties:
+      FunctionName:
+        Ref: RebuildFunctionName
+      CodeUri: src/
+      Handler: consumer.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - RebuildFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: RebuildFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+          CONSUMER_KIND: rebuild
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - RebuildQueue
+              - Arn
+            BatchSize: 5
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            ScalingConfig:
+              MaximumConcurrency: 2
+  ControllerFunctionLog:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数ごとの必要な診断情報だけを保存する。
+        must:
+        - 注文本文や認証値をログへ出さない。
+    Properties:
+      LogGroupName:
+        Ref: ControllerFunctionLogName
+      RetentionInDays: 1
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+  ControllerFunctionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 関数が実際に使うデータと配送先へ権限を限定する。
+        must:
+        - 管理者ポリシーを付けない。
+    Properties:
+      RoleName:
+        Ref: ControllerFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: ControllerFunctionPolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::GetAtt:
+              - ControllerFunctionLog
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:Query
+            Resource:
+            - Fn::GetAtt:
+              - ControlTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - OrdersTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:Query
+            Resource:
+            - Fn::GetAtt:
+              - AggregateTable
+              - Arn
+            - Fn::GetAtt:
+              - NotificationsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - events:PutEvents
+            Resource:
+            - Fn::GetAtt:
+              - OrderBus
+              - Arn
+          - Effect: Allow
+            Action:
+            - events:StartReplay
+            Resource:
+            - Fn::GetAtt:
+              - OrderArchive
+              - Arn
+            - Fn::GetAtt:
+              - OrderBus
+              - Arn
+            - Fn::Sub: arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:replay/miruky-*
+          - Effect: Allow
+            Action:
+            - events:DescribeReplay
+            - events:CancelReplay
+            Resource:
+            - Fn::Sub: arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:replay/miruky-*
+  ControllerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 配送回数に依存せず業務イベント単位で処理する。
+        must: []
+    Properties:
+      FunctionName:
+        Ref: ControllerFunctionName
+      CodeUri: src/
+      Handler: controller.handler
+      Runtime: python3.13
+      Architectures:
+      - arm64
+      MemorySize: 512
+      Timeout: 30
+      Role:
+        Fn::GetAtt:
+        - ControllerFunctionRole
+        - Arn
+      LoggingConfig:
+        LogGroup:
+          Ref: ControllerFunctionLog
+        LogFormat: Text
+      Environment:
+        Variables:
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          CONTROL_TABLE:
+            Ref: ControlTable
+          AGGREGATE_TABLE:
+            Ref: AggregateTable
+          NOTIFICATIONS_TABLE:
+            Ref: NotificationsTable
+          EVENT_BUS:
+            Ref: OrderBus
+          ARCHIVE_ARN:
+            Fn::GetAtt:
+            - OrderArchive
+            - Arn
+          EVENT_BUS_ARN:
+            Fn::GetAtt:
+            - OrderBus
+            - Arn
+          REBUILD_RULE_ARN:
+            Fn::GetAtt:
+            - RebuildRule
+            - Arn
+  RebuildStateMachineRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 復旧制御関数だけを呼び出す。
+        must:
+        - 別のステートマシンから引き受けない。
+    Properties:
+      RoleName:
+        Ref: RebuildStateMachineRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: states.amazonaws.com
+          Action: sts:AssumeRole
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnEquals:
+              aws:SourceArn:
+                Fn::Sub: arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${RebuildStateMachineName}
+      Policies:
+      - PolicyName:
+          Ref: RebuildStateMachinePolicyName
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource:
+            - Fn::GetAtt:
+              - ControllerFunction
+              - Arn
+  RebuildStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 待機と照合と世代切替を状態として区別する。
+        must:
+        - 再生完了だけでは切り替えない。
+    Properties:
+      Name:
+        Ref: RebuildStateMachineName
+      Type: STANDARD
+      DefinitionUri: statemachine/rebuild.asl.json
+      DefinitionSubstitutions:
+        ControllerArn:
+          Fn::GetAtt:
+          - ControllerFunction
+          - Arn
+      Role:
+        Fn::GetAtt:
+        - RebuildStateMachineRole
+        - Arn
+  AggregateDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 残った失敗メッセージを検知する。
+        must:
+        - 外部通知は送らない。
+    Properties:
+      AlarmName:
+        Ref: AggregateDLQAlarmName
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - AggregateDLQ
+          - QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  NotificationDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 残った失敗メッセージを検知する。
+        must:
+        - 外部通知は送らない。
+    Properties:
+      AlarmName:
+        Ref: NotificationDLQAlarmName
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - NotificationDLQ
+          - QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  RebuildDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 残った失敗メッセージを検知する。
+        must:
+        - 外部通知は送らない。
+    Properties:
+      AlarmName:
+        Ref: RebuildDLQAlarmName
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - RebuildDLQ
+          - QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  DeliveryDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 残った失敗メッセージを検知する。
+        must:
+        - 外部通知は送らない。
+    Properties:
+      AlarmName:
+        Ref: DeliveryDLQAlarmName
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - DeliveryDLQ
+          - QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  RelayDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 残った失敗メッセージを検知する。
+        must:
+        - 外部通知は送らない。
+    Properties:
+      AlarmName:
+        Ref: RelayDLQAlarmName
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - RelayDLQ
+          - QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  RelayAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Outbox配送の遅れを検知する。
+        must: []
+    Properties:
+      AlarmName:
+        Ref: RelayAgeAlarmName
+      Namespace: AWS/Lambda
+      MetricName: IteratorAge
+      Dimensions:
+      - Name: FunctionName
+        Value:
+          Ref: RelayFunction
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 300000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+Outputs:
+  OrdersTable:
+    Description: OrdersTable
+    Value:
+      Ref: OrdersTable
+  ControlTable:
+    Description: ControlTable
+    Value:
+      Ref: ControlTable
+  AggregateTable:
+    Description: AggregateTable
+    Value:
+      Ref: AggregateTable
+  NotificationsTable:
+    Description: NotificationsTable
+    Value:
+      Ref: NotificationsTable
+  AggregateQueue:
+    Description: AggregateQueue
+    Value:
+      Ref: AggregateQueue
+  NotificationQueue:
+    Description: NotificationQueue
+    Value:
+      Ref: NotificationQueue
+  RebuildQueue:
+    Description: RebuildQueue
+    Value:
+      Ref: RebuildQueue
+  AggregateDLQ:
+    Description: AggregateDLQ
+    Value:
+      Ref: AggregateDLQ
+  NotificationDLQ:
+    Description: NotificationDLQ
+    Value:
+      Ref: NotificationDLQ
+  RebuildDLQ:
+    Description: RebuildDLQ
+    Value:
+      Ref: RebuildDLQ
+  DeliveryDLQ:
+    Description: DeliveryDLQ
+    Value:
+      Ref: DeliveryDLQ
+  RelayDLQ:
+    Description: RelayDLQ
+    Value:
+      Ref: RelayDLQ
+  OrderBus:
+    Description: OrderBus
+    Value:
+      Ref: OrderBus
+  OrderArchive:
+    Description: OrderArchive
+    Value:
+      Ref: OrderArchive
+  ApiEndpoint:
+    Description: ApiEndpoint
+    Value:
+      Fn::Sub: https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${ApiStageName}
+  OrdersFunction:
+    Description: OrdersFunction
+    Value:
+      Ref: OrdersFunction
+  RelayFunction:
+    Description: RelayFunction
+    Value:
+      Ref: RelayFunction
+  AggregateFunction:
+    Description: AggregateFunction
+    Value:
+      Ref: AggregateFunction
+  NotificationFunction:
+    Description: NotificationFunction
+    Value:
+      Ref: NotificationFunction
+  RebuildFunction:
+    Description: RebuildFunction
+    Value:
+      Ref: RebuildFunction
+  ControllerFunction:
+    Description: ControllerFunction
+    Value:
+      Ref: ControllerFunction
+  RebuildStateMachine:
+    Description: RebuildStateMachine
+    Value:
+      Ref: RebuildStateMachine

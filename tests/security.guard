@@ -1,0 +1,27 @@
+# デプロイ前に、公開禁止・暗号化・IAM認証・同時実行上限を確認します。
+let queues = Resources.*[ Type == 'AWS::SQS::Queue' ]
+rule queue_encryption when %queues !empty {
+    %queues.Properties.SqsManagedSseEnabled == true
+}
+let functions = Resources.*[ Type == 'AWS::Serverless::Function' ]
+rule bounded_functions when %functions !empty {
+    %functions.Properties.Timeout <= 30
+}
+rule bounded_queue_consumers when %functions !empty {
+    Resources.AggregateFunction.Properties.Events.Queue.Properties.ScalingConfig.MaximumConcurrency == 2
+    Resources.NotificationFunction.Properties.Events.Queue.Properties.ScalingConfig.MaximumConcurrency == 2
+    Resources.RebuildFunction.Properties.Events.Queue.Properties.ScalingConfig.MaximumConcurrency == 2
+}
+let apis = Resources.*[ Type == 'AWS::Serverless::HttpApi' ]
+rule authenticated_http_api when %apis !empty {
+    %apis.Properties.Auth.EnableIamAuthorizer == true
+    %apis.Properties.Auth.DefaultAuthorizer == 'AWS_IAM'
+}
+let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+rule private_artifacts when %buckets !empty {
+    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicAcls == true
+    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicPolicy == true
+    %buckets.Properties.PublicAccessBlockConfiguration.IgnorePublicAcls == true
+    %buckets.Properties.PublicAccessBlockConfiguration.RestrictPublicBuckets == true
+    %buckets.Properties.BucketEncryption exists
+}

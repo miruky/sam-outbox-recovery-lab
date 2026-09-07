@@ -1,0 +1,314 @@
+[
+  {
+    "logical": "OrdersTable",
+    "service": "dynamodb",
+    "field": "TableName",
+    "parameter": "OrdersTableName"
+  },
+  {
+    "logical": "ControlTable",
+    "service": "dynamodb",
+    "field": "TableName",
+    "parameter": "ControlTableName"
+  },
+  {
+    "logical": "AggregateTable",
+    "service": "dynamodb",
+    "field": "TableName",
+    "parameter": "AggregateTableName"
+  },
+  {
+    "logical": "NotificationsTable",
+    "service": "dynamodb",
+    "field": "TableName",
+    "parameter": "NotificationsTableName"
+  },
+  {
+    "logical": "AggregateQueue",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "AggregateQueueName"
+  },
+  {
+    "logical": "NotificationQueue",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "NotificationQueueName"
+  },
+  {
+    "logical": "RebuildQueue",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "RebuildQueueName"
+  },
+  {
+    "logical": "AggregateDLQ",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "AggregateDLQName"
+  },
+  {
+    "logical": "NotificationDLQ",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "NotificationDLQName"
+  },
+  {
+    "logical": "RebuildDLQ",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "RebuildDLQName"
+  },
+  {
+    "logical": "DeliveryDLQ",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "DeliveryDLQName"
+  },
+  {
+    "logical": "RelayDLQ",
+    "service": "sqs",
+    "field": "QueueName",
+    "parameter": "RelayDLQName"
+  },
+  {
+    "logical": "OrderBus",
+    "service": "events",
+    "field": "Name",
+    "parameter": "OrderBusName"
+  },
+  {
+    "logical": "OrderArchive",
+    "service": "events",
+    "field": "ArchiveName",
+    "parameter": "OrderArchiveName"
+  },
+  {
+    "logical": "AggregateRule",
+    "service": "events",
+    "field": "Name",
+    "parameter": "AggregateRuleName"
+  },
+  {
+    "logical": "NotificationRule",
+    "service": "events",
+    "field": "Name",
+    "parameter": "NotificationRuleName"
+  },
+  {
+    "logical": "RebuildRule",
+    "service": "events",
+    "field": "Name",
+    "parameter": "RebuildRuleName"
+  },
+  {
+    "logical": "HttpApi",
+    "service": "apigateway",
+    "field": "Name",
+    "parameter": "HttpApiName"
+  },
+  {
+    "logical": "ApiStage",
+    "service": "apigateway",
+    "field": "StageName",
+    "parameter": "ApiStageName"
+  },
+  {
+    "logical": "OrdersFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "OrdersFunctionName"
+  },
+  {
+    "logical": "OrdersFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "OrdersFunctionLogName"
+  },
+  {
+    "logical": "OrdersFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "OrdersFunctionRoleName"
+  },
+  {
+    "logical": "OrdersFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "OrdersFunctionPolicyName"
+  },
+  {
+    "logical": "RelayFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "RelayFunctionName"
+  },
+  {
+    "logical": "RelayFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "RelayFunctionLogName"
+  },
+  {
+    "logical": "RelayFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "RelayFunctionRoleName"
+  },
+  {
+    "logical": "RelayFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "RelayFunctionPolicyName"
+  },
+  {
+    "logical": "AggregateFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "AggregateFunctionName"
+  },
+  {
+    "logical": "AggregateFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "AggregateFunctionLogName"
+  },
+  {
+    "logical": "AggregateFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "AggregateFunctionRoleName"
+  },
+  {
+    "logical": "AggregateFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "AggregateFunctionPolicyName"
+  },
+  {
+    "logical": "NotificationFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "NotificationFunctionName"
+  },
+  {
+    "logical": "NotificationFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "NotificationFunctionLogName"
+  },
+  {
+    "logical": "NotificationFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "NotificationFunctionRoleName"
+  },
+  {
+    "logical": "NotificationFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "NotificationFunctionPolicyName"
+  },
+  {
+    "logical": "RebuildFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "RebuildFunctionName"
+  },
+  {
+    "logical": "RebuildFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "RebuildFunctionLogName"
+  },
+  {
+    "logical": "RebuildFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "RebuildFunctionRoleName"
+  },
+  {
+    "logical": "RebuildFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "RebuildFunctionPolicyName"
+  },
+  {
+    "logical": "ControllerFunction",
+    "service": "lambda",
+    "field": "FunctionName",
+    "parameter": "ControllerFunctionName"
+  },
+  {
+    "logical": "ControllerFunctionLog",
+    "service": "logs",
+    "field": "LogGroupName",
+    "parameter": "ControllerFunctionLogName"
+  },
+  {
+    "logical": "ControllerFunctionRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "ControllerFunctionRoleName"
+  },
+  {
+    "logical": "ControllerFunctionPolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "ControllerFunctionPolicyName"
+  },
+  {
+    "logical": "RebuildStateMachine",
+    "service": "states",
+    "field": "Name",
+    "parameter": "RebuildStateMachineName"
+  },
+  {
+    "logical": "RebuildStateMachineRole",
+    "service": "iam",
+    "field": "RoleName",
+    "parameter": "RebuildStateMachineRoleName"
+  },
+  {
+    "logical": "RebuildStateMachinePolicy",
+    "service": "iam",
+    "field": "PolicyName",
+    "parameter": "RebuildStateMachinePolicyName"
+  },
+  {
+    "logical": "AggregateDLQAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "AggregateDLQAlarmName"
+  },
+  {
+    "logical": "NotificationDLQAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "NotificationDLQAlarmName"
+  },
+  {
+    "logical": "RebuildDLQAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "RebuildDLQAlarmName"
+  },
+  {
+    "logical": "DeliveryDLQAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "DeliveryDLQAlarmName"
+  },
+  {
+    "logical": "RelayDLQAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "RelayDLQAlarmName"
+  },
+  {
+    "logical": "RelayAgeAlarm",
+    "service": "cloudwatch",
+    "field": "AlarmName",
+    "parameter": "RelayAgeAlarmName"
+  }
+]

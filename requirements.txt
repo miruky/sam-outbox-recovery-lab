@@ -1,0 +1,2 @@
+# 操作用の署名処理にもLambdaと同じSDKを使用します。
+-r src/requirements.txt

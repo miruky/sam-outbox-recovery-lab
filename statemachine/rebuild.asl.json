@@ -1,0 +1,239 @@
+{
+  "Comment": "Pause intake; replay only to the rebuild rule; freeze and verify before activation.",
+  "StartAt": "PauseAndPrepare",
+  "TimeoutSeconds": 1800,
+  "States": {
+    "PauseAndPrepare": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "prepare",
+          "data.$": "$"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.failure",
+          "Next": "RecordFailure"
+        }
+      ],
+      "Next": "WaitForArchive"
+    },
+    "WaitForArchive": {
+      "Type": "Wait",
+      "TimestampPath": "$.archive_ready_at",
+      "Next": "StartReplay"
+    },
+    "StartReplay": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "start-replay",
+          "data.$": "$"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.failure",
+          "Next": "RecordFailure"
+        }
+      ],
+      "Next": "WaitForReplay"
+    },
+    "WaitForReplay": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "CheckReplay"
+    },
+    "CheckReplay": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "poll-replay",
+          "data.$": "$"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.failure",
+          "Next": "RecordFailure"
+        }
+      ],
+      "Next": "ReplayFinished"
+    },
+    "ReplayFinished": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.replay_state",
+          "StringEquals": "COMPLETED",
+          "Next": "VerifyGeneration"
+        }
+      ],
+      "Default": "WaitForReplay"
+    },
+    "VerifyGeneration": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "verify",
+          "data.$": "$"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.failure",
+          "Next": "RecordFailure"
+        }
+      ],
+      "Next": "GenerationVerified"
+    },
+    "GenerationVerified": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.verified",
+          "BooleanEquals": true,
+          "Next": "ActivateGeneration"
+        }
+      ],
+      "Default": "WaitForConsumers"
+    },
+    "WaitForConsumers": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "VerifyGeneration"
+    },
+    "ActivateGeneration": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "activate",
+          "data.$": "$"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.failure",
+          "Next": "RecordFailure"
+        }
+      ],
+      "Next": "RebuildSucceeded"
+    },
+    "RebuildSucceeded": {
+      "Type": "Succeed"
+    },
+    "RecordFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ControllerArn}",
+        "Payload": {
+          "action": "fail",
+          "data.$": "$"
+        }
+      },
+      "Next": "RebuildFailed"
+    },
+    "RebuildFailed": {
+      "Type": "Fail",
+      "Error": "RebuildNotActivated",
+      "Cause": "The previous generation remains selected."
+    }
+  }
+}
